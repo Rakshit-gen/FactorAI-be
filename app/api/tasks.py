@@ -21,6 +21,7 @@ async def create_task(
     
     return task
 
+
 @router.get("/{task_id}", response_model=TaskResponse)
 def get_task(task_id: UUID, db: Session = Depends(get_db)):
     task = task_service.get_task(db, task_id)
