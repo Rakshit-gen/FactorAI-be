@@ -84,6 +84,14 @@ class TaskService:
     @staticmethod
     def get_task(db: Session, task_id: UUID) -> Optional[Task]:
         return db.query(Task).filter(Task.id == task_id).first()
+    @staticmethod
+    def delete_task(db: Session, task_id: UUID) -> bool:
+        task = db.query(Task).filter(Task.id == task_id).first()
+        if not task:
+            return False
+        db.delete(task)
+        db.commit()
+        return True
     
     @staticmethod
     def get_all_tasks(db: Session, skip: int = 0, limit: int = 100) -> List[Task]:

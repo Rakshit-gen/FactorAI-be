@@ -40,3 +40,10 @@ def get_all_executions(
 ):
     executions = execution_service.get_all_executions(db, skip, limit, agent_id)
     return executions
+
+@router.delete("/{execution_id}")
+def delete_execution(execution_id: UUID, db: Session = Depends(get_db)):
+    success = execution_service.delete_execution(db, execution_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Execution not found")
+    return {"message": "Execution deleted successfully", "execution_id": str(execution_id)}

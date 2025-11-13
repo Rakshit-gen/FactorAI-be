@@ -80,5 +80,13 @@ class ExecutionService:
         if agent_id:
             query = query.filter(Execution.agent_id == agent_id)
         return query.order_by(Execution.created_at.desc()).offset(skip).limit(limit).all()
+    @staticmethod
+    def delete_execution(db: Session, execution_id: UUID) -> bool:
+        execution = db.query(Execution).filter(Execution.id == execution_id).first()
+        if not execution:
+            return False
+        db.delete(execution)
+        db.commit()
+        return True
 
 execution_service = ExecutionService()

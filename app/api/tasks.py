@@ -46,3 +46,10 @@ def get_task_result(task_id: UUID, db: Session = Depends(get_db)):
 def get_all_tasks(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     tasks = task_service.get_all_tasks(db, skip, limit)
     return tasks
+
+@router.delete("/{task_id}")
+def delete_task(task_id: UUID, db: Session = Depends(get_db)):
+    success = task_service.delete_task(db, task_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Task not found")
+    return {"message": "Task deleted successfully", "task_id": str(task_id)}
