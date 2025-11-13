@@ -22,12 +22,14 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+# CRITICAL: Update CORS settings
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],  # In production, replace with your frontend URL
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 app.include_router(tasks.router, prefix="/api/tasks", tags=["Tasks"])
