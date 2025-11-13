@@ -11,8 +11,9 @@ from app.core.redis_client import redis_client
 
 class TaskService:
     @staticmethod
-    def create_task(db: Session, task_data: TaskCreate) -> Task:
+    def create_task(db: Session, task_data: TaskCreate, user_id: str) -> Task:
         task = Task(
+            user_id=user_id,
             description=task_data.description,
             status=TaskStatus.PENDING,
             task_metadata=task_data.task_metadata
@@ -39,6 +40,7 @@ class TaskService:
             agent_data = agent_factory.build_agent_from_config(agent_config, task.description)
             
             agent = Agent(
+                user_id=task.user_id,
                 name=agent_data["name"],
                 agent_type=agent_data["agent_type"],
                 description=agent_data["description"],
@@ -82,19 +84,20 @@ class TaskService:
             await redis_client.set(f"task:{task_id}:error", str(e), expire=3600)
     
     @staticmethod
-    def get_task(db: Session, task_id: UUID) -> Optional[Task]:
-        return db.query(Task).filter(Task.id == task_id).first()
+    def get_task(db: Session, task_id: UUID, user_id: str) -> Optional[Task]:
+        return db.query(Task).filter(Task.id == task_id, Task.user_id == user_id).first()
+    
     @staticmethod
-    def delete_task(db: Session, task_id: UUID) -> bool:
-        task = db.query(Task).filter(Task.id == task_id).first()
+    def get_all_tasks(db: Session, user_id: str, skip: int = 0, limit: int = 100) -> List[Task]:
+        return db.query(Task).filter(Task.user_id == user_id).order_by(Task.created_at.desc()).offset(skip).limit(limit).all()
+    
+    @staticmethod
+    def delete_task(db: Session, task_id: UUID, user_id: str) -> bool:
+        task = db.query(Task).filter(Task.id == task_id, Task.user_id == user_id).first()
         if not task:
             return False
         db.delete(task)
         db.commit()
         return True
-    
-    @staticmethod
-    def get_all_tasks(db: Session, skip: int = 0, limit: int = 100) -> List[Task]:
-        return db.query(Task).order_by(Task.created_at.desc()).offset(skip).limit(limit).all()
 
 task_service = TaskService()

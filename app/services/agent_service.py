@@ -8,14 +8,15 @@ from app.agents.templates import get_template
 
 class AgentService:
     @staticmethod
-    def create_agent(db: Session, agent_data: AgentCreate) -> Agent:
+    def create_agent(db: Session, agent_data: AgentCreate, user_id: str) -> Agent:
         agent = Agent(
+            user_id=user_id,
             name=agent_data.name,
             agent_type=agent_data.agent_type,
             description=agent_data.description,
             system_prompt=agent_data.system_prompt,
             capabilities=agent_data.capabilities or [],
-            model="llama-3.3-70b-versatile",
+            model=agent_data.model,
             temperature=str(agent_data.temperature),
             max_tokens=str(agent_data.max_tokens),
             agent_metadata=agent_data.agent_metadata or {}
@@ -26,10 +27,11 @@ class AgentService:
         return agent
     
     @staticmethod
-    def create_agent_from_template(db: Session, agent_type: AgentType, name: str, description: Optional[str] = None) -> Agent:
+    def create_agent_from_template(db: Session, agent_type: AgentType, name: str, user_id: str, description: Optional[str] = None) -> Agent:
         template = get_template(agent_type)
         
         agent = Agent(
+            user_id=user_id,
             name=name,
             agent_type=agent_type,
             description=description or f"Agent created from {agent_type.value} template",
@@ -46,19 +48,19 @@ class AgentService:
         return agent
     
     @staticmethod
-    def get_agent(db: Session, agent_id: UUID) -> Optional[Agent]:
-        return db.query(Agent).filter(Agent.id == agent_id).first()
+    def get_agent(db: Session, agent_id: UUID, user_id: str) -> Optional[Agent]:
+        return db.query(Agent).filter(Agent.id == agent_id, Agent.user_id == user_id).first()
     
     @staticmethod
-    def get_all_agents(db: Session, skip: int = 0, limit: int = 100, agent_type: Optional[AgentType] = None) -> List[Agent]:
-        query = db.query(Agent)
+    def get_all_agents(db: Session, user_id: str, skip: int = 0, limit: int = 100, agent_type: Optional[AgentType] = None) -> List[Agent]:
+        query = db.query(Agent).filter(Agent.user_id == user_id)
         if agent_type:
             query = query.filter(Agent.agent_type == agent_type)
         return query.order_by(Agent.created_at.desc()).offset(skip).limit(limit).all()
     
     @staticmethod
-    def update_agent(db: Session, agent_id: UUID, agent_data: AgentUpdate) -> Optional[Agent]:
-        agent = db.query(Agent).filter(Agent.id == agent_id).first()
+    def update_agent(db: Session, agent_id: UUID, agent_data: AgentUpdate, user_id: str) -> Optional[Agent]:
+        agent = db.query(Agent).filter(Agent.id == agent_id, Agent.user_id == user_id).first()
         if not agent:
             return None
         
@@ -77,8 +79,8 @@ class AgentService:
         return agent
     
     @staticmethod
-    def delete_agent(db: Session, agent_id: UUID) -> bool:
-        agent = db.query(Agent).filter(Agent.id == agent_id).first()
+    def delete_agent(db: Session, agent_id: UUID, user_id: str) -> bool:
+        agent = db.query(Agent).filter(Agent.id == agent_id, Agent.user_id == user_id).first()
         if not agent:
             return False
         db.delete(agent)

@@ -4,6 +4,7 @@ from typing import List, Optional
 from uuid import UUID
 
 from app.core.database import get_db
+from app.core.auth import get_current_user
 from app.schemas.execution import ExecutionCreate, ExecutionResponse
 from app.services.execution_service import execution_service
 
@@ -13,10 +14,11 @@ router = APIRouter()
 async def execute_agent(
     execution_data: ExecutionCreate,
     background_tasks: BackgroundTasks,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    user_id: str = Depends(get_current_user)
 ):
     try:
-        execution = execution_service.create_execution(db, execution_data)
+        execution = execution_service.create_execution(db, execution_data, user_id)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     
@@ -25,8 +27,12 @@ async def execute_agent(
     return execution
 
 @router.get("/{execution_id}", response_model=ExecutionResponse)
-def get_execution(execution_id: UUID, db: Session = Depends(get_db)):
-    execution = execution_service.get_execution(db, execution_id)
+def get_execution(
+    execution_id: UUID, 
+    db: Session = Depends(get_db),
+    user_id: str = Depends(get_current_user)
+):
+    execution = execution_service.get_execution(db, execution_id, user_id)
     if not execution:
         raise HTTPException(status_code=404, detail="Execution not found")
     return execution
@@ -36,14 +42,19 @@ def get_all_executions(
     skip: int = 0,
     limit: int = 100,
     agent_id: Optional[UUID] = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    user_id: str = Depends(get_current_user)
 ):
-    executions = execution_service.get_all_executions(db, skip, limit, agent_id)
+    executions = execution_service.get_all_executions(db, user_id, skip, limit, agent_id)
     return executions
 
 @router.delete("/{execution_id}")
-def delete_execution(execution_id: UUID, db: Session = Depends(get_db)):
-    success = execution_service.delete_execution(db, execution_id)
+def delete_execution(
+    execution_id: UUID, 
+    db: Session = Depends(get_db),
+    user_id: str = Depends(get_current_user)
+):
+    success = execution_service.delete_execution(db, execution_id, user_id)
     if not success:
         raise HTTPException(status_code=404, detail="Execution not found")
     return {"message": "Execution deleted successfully", "execution_id": str(execution_id)}

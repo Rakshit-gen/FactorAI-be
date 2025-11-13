@@ -12,12 +12,13 @@ from app.core.redis_client import redis_client
 
 class ExecutionService:
     @staticmethod
-    def create_execution(db: Session, execution_data: ExecutionCreate) -> Execution:
-        agent = db.query(Agent).filter(Agent.id == execution_data.agent_id).first()
+    def create_execution(db: Session, execution_data: ExecutionCreate, user_id: str) -> Execution:
+        agent = db.query(Agent).filter(Agent.id == execution_data.agent_id, Agent.user_id == user_id).first()
         if not agent:
             raise ValueError(f"Agent with id {execution_data.agent_id} not found")
         
         execution = Execution(
+            user_id=user_id,
             agent_id=execution_data.agent_id,
             input_data=execution_data.input_data,
             status=ExecutionStatus.PENDING,
@@ -71,18 +72,19 @@ class ExecutionService:
             await redis_client.set(f"execution:{execution_id}:error", str(e), expire=3600)
     
     @staticmethod
-    def get_execution(db: Session, execution_id: UUID) -> Optional[Execution]:
-        return db.query(Execution).filter(Execution.id == execution_id).first()
+    def get_execution(db: Session, execution_id: UUID, user_id: str) -> Optional[Execution]:
+        return db.query(Execution).filter(Execution.id == execution_id, Execution.user_id == user_id).first()
     
     @staticmethod
-    def get_all_executions(db: Session, skip: int = 0, limit: int = 100, agent_id: Optional[UUID] = None) -> List[Execution]:
-        query = db.query(Execution)
+    def get_all_executions(db: Session, user_id: str, skip: int = 0, limit: int = 100, agent_id: Optional[UUID] = None) -> List[Execution]:
+        query = db.query(Execution).filter(Execution.user_id == user_id)
         if agent_id:
             query = query.filter(Execution.agent_id == agent_id)
         return query.order_by(Execution.created_at.desc()).offset(skip).limit(limit).all()
+    
     @staticmethod
-    def delete_execution(db: Session, execution_id: UUID) -> bool:
-        execution = db.query(Execution).filter(Execution.id == execution_id).first()
+    def delete_execution(db: Session, execution_id: UUID, user_id: str) -> bool:
+        execution = db.query(Execution).filter(Execution.id == execution_id, Execution.user_id == user_id).first()
         if not execution:
             return False
         db.delete(execution)

@@ -17,6 +17,7 @@ class Execution(Base):
     __tablename__ = "executions"
     
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(String(255), nullable=False, index=True)
     agent_id = Column(UUID(as_uuid=True), ForeignKey("agents.id", ondelete="CASCADE"), nullable=False)
     input_data = Column(Text, nullable=False)
     status = Column(SQLEnum(ExecutionStatus), default=ExecutionStatus.PENDING)

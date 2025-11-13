@@ -20,6 +20,7 @@ class Agent(Base):
     __tablename__ = "agents"
     
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(String(255), nullable=False, index=True)
     name = Column(String(255), nullable=False)
     agent_type = Column(SQLEnum(AgentType), nullable=False)
     description = Column(Text)

@@ -17,6 +17,7 @@ class Task(Base):
     __tablename__ = "tasks"
     
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(String(255), nullable=False, index=True)
     description = Column(Text, nullable=False)
     status = Column(SQLEnum(TaskStatus), default=TaskStatus.PENDING)
     created_agent_id = Column(UUID(as_uuid=True), ForeignKey("agents.id", ondelete="SET NULL"), nullable=True)

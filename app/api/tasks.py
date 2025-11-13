@@ -4,6 +4,7 @@ from typing import List
 from uuid import UUID
 
 from app.core.database import get_db
+from app.core.auth import get_current_user
 from app.schemas.task import TaskCreate, TaskResponse
 from app.services.task_service import task_service
 
@@ -13,25 +14,33 @@ router = APIRouter()
 async def create_task(
     task_data: TaskCreate,
     background_tasks: BackgroundTasks,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    user_id: str = Depends(get_current_user)
 ):
-    task = task_service.create_task(db, task_data)
+    task = task_service.create_task(db, task_data, user_id)
     
     background_tasks.add_task(task_service.process_task, db, task.id)
     
     return task
 
-
 @router.get("/{task_id}", response_model=TaskResponse)
-def get_task(task_id: UUID, db: Session = Depends(get_db)):
-    task = task_service.get_task(db, task_id)
+def get_task(
+    task_id: UUID, 
+    db: Session = Depends(get_db),
+    user_id: str = Depends(get_current_user)
+):
+    task = task_service.get_task(db, task_id, user_id)
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
     return task
 
 @router.get("/{task_id}/result")
-def get_task_result(task_id: UUID, db: Session = Depends(get_db)):
-    task = task_service.get_task(db, task_id)
+def get_task_result(
+    task_id: UUID, 
+    db: Session = Depends(get_db),
+    user_id: str = Depends(get_current_user)
+):
+    task = task_service.get_task(db, task_id, user_id)
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
     
@@ -43,13 +52,22 @@ def get_task_result(task_id: UUID, db: Session = Depends(get_db)):
     }
 
 @router.get("/", response_model=List[TaskResponse])
-def get_all_tasks(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    tasks = task_service.get_all_tasks(db, skip, limit)
+def get_all_tasks(
+    skip: int = 0, 
+    limit: int = 100, 
+    db: Session = Depends(get_db),
+    user_id: str = Depends(get_current_user)
+):
+    tasks = task_service.get_all_tasks(db, user_id, skip, limit)
     return tasks
 
 @router.delete("/{task_id}")
-def delete_task(task_id: UUID, db: Session = Depends(get_db)):
-    success = task_service.delete_task(db, task_id)
+def delete_task(
+    task_id: UUID, 
+    db: Session = Depends(get_db),
+    user_id: str = Depends(get_current_user)
+):
+    success = task_service.delete_task(db, task_id, user_id)
     if not success:
         raise HTTPException(status_code=404, detail="Task not found")
     return {"message": "Task deleted successfully", "task_id": str(task_id)}
